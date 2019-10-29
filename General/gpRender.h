@@ -43,6 +43,9 @@ class gpRender{
 		int getSW();
 		int getSH();
 		int getFD();
+		int getImageWidth();
+		int getImageHeight();
+		SDL_Texture * getWall();
 
 		SDL_Renderer* getRender();
 
@@ -56,8 +59,13 @@ class gpRender{
 		int frameTime;
 		int SCREEN_WIDTH = 1280;
 		int SCREEN_HEIGHT = 720;
+
+		int image_width;
+		int image_height;
+
 		int FPS = 60;
 		int frameDelay = 1000/ FPS;
 		SDL_Texture* bgsheet;
+		SDL_Texture *maze_wall;
 		
 };

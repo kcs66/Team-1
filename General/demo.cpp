@@ -11,7 +11,7 @@
 #include "../Physics/BasicMovementFPSlimit.h"
 #include "../Physics/TimeData.h"
 #include "../General/gpRender.h"
-#include "../General/Ellers_Maze.h"
+#include "../Level_Generation/Ellers_Maze.h"
 #include "demo.h"
 
 std::vector<std::pair<int, int>> randNum(){
@@ -46,6 +46,7 @@ constexpr int ZONE_WIDTH = 3840;
 constexpr int ZONE_HEIGHT = 2160;
 
 void run_demo(gpRender gr){
+	
 	//Vector used to store all on screen entities
 
 	std::vector<Sprite*> osSprite; // vector for collision checker
@@ -63,9 +64,6 @@ void run_demo(gpRender gr){
 	SDL_Texture* tex = gr.loadImage("Assets/Objects/ship_player.png");
 	SDL_Rect db = {SCREEN_WIDTH/2 - PLAYER_WIDTH/2,SCREEN_HEIGHT/2 - PLAYER_HEIGHT/2,PLAYER_WIDTH,PLAYER_HEIGHT};
 	Ship playerent(db, tex, 0);
-	playerent.setRenderOrder(0);
-	playerent.setCurrHp(100);
-	playerent.setMaxHp(100);
 	osSprite.push_back(&playerent);
 	
 	
@@ -143,7 +141,7 @@ void run_demo(gpRender gr){
 
 	SDL_Texture* texhp = gr.loadImage("Assets/Objects/hp_bar.png");
 	SDL_Rect hp = {10,10,300,20};
-	HpBar hpent(hp, texhp, playerent.getCurrHp()/playerent.getMaxHp());
+	HpBar hpent(hp, texhp, playerent.getHp());
 	osSprite2.push_back(&hpent);
 	/*
 	//Ship Cruiser initilization
@@ -216,31 +214,61 @@ void run_demo(gpRender gr){
 			
 		}
 	}
-
-	//Game Loop
 	while(gameon)
 	{
-		gr.setFrameStart(SDL_GetTicks());
-		TimeData::update_timestep();
+		Ellers_Maze maze;
+		SDL_RenderClear(gr.getRender());
+		bool mazeCheck = true;
 
-		//Handles all incoming Key events
-		while(SDL_PollEvent(&e)) {
-			gameon = handleKeyEvents(e, playerent);	
-			switch(e.key.keysym.sym) {
-				case SDLK_w:
-					if(e.type == SDL_KEYDOWN){
-						animate = true;
-					}
-					else if (e.type == SDL_KEYUP){
-						animate = false;
-					}
-					break;
+		while(mazeCheck && gameon)
+		{
+			SDL_RenderClear(gr.getRender());
+			while(SDL_PollEvent(&e)) {
+				gameon = handleKeyEvents(e, playerent);	
+				switch(e.key.keysym.sym) {
+					case SDLK_m:
+						if(e.type == SDL_KEYDOWN){
+							mazeCheck = false;
+						}
+						
+						break;
+				}
 			}
+			maze.drawMaze(gr.getWall(), gr.getRender());
+			SDL_RenderPresent(gr.getRender());
 		}
-		hpent.setPercentage((float)playerent.getCurrHp()/(float)playerent.getMaxHp());
-		hpent.changeBar(playerent);
-		updatePosition(playerent, osSprite, ZONE_WIDTH, ZONE_HEIGHT);
-		TimeData::update_move_last_time();
+	
+		SDL_RenderClear(gr.getRender());
+		bool galaxy = true;
+	
+		//Game Loop
+		while(gameon && galaxy)
+		{
+			gr.setFrameStart(SDL_GetTicks());
+			TimeData::update_timestep();
+	
+			//Handles all incoming Key events
+			while(SDL_PollEvent(&e)) {
+				gameon = handleKeyEvents(e, playerent);	
+				switch(e.key.keysym.sym) {
+					case SDLK_w:
+						if(e.type == SDL_KEYDOWN){
+							animate = true;
+						}
+						else if (e.type == SDL_KEYUP){
+							animate = false;
+						}
+						break;
+					case SDLK_m:
+						if(e.type == SDL_KEYDOWN){
+							galaxy = false;
+						}
+						break;
+				}
+			}
+		
+			updatePosition(playerent, osSprite, ZONE_WIDTH, ZONE_HEIGHT);
+			TimeData::update_move_last_time();
 
 		if (animate){
 			if (TimeData::getTimeSinceAnim() > 100) {
@@ -268,6 +296,7 @@ void run_demo(gpRender gr){
 		}
 
 		//Renders all renderable objects onto the screen
+		
 
 		camera.x = playerent.getX() - SCREEN_WIDTH/2 + PLAYER_WIDTH/2;
 		camera.y = playerent.getY() - SCREEN_HEIGHT/2 + PLAYER_HEIGHT/2;
@@ -292,7 +321,5 @@ void run_demo(gpRender gr){
 
 		gr.renderOnScreenEntity(osSprite2, bggalaxies, bgzonelayer1, bgzonelayer2, camera, fixed);
 	}
-	
-	Ellers_Maze test_maze;
-	test_maze.test_output();
+}
 }
