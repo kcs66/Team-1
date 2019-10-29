@@ -1,3 +1,4 @@
+
 #include <vector>
 #include <SDL.h>
 #include <SDL_image.h>
@@ -45,6 +46,10 @@ class gpRender{
 		int getFD();
 
 		SDL_Renderer* getRender();
+		
+		int getImageWidth();
+		int getImageHeight();
+		SDL_Texture * getWall();
 
 
 
@@ -59,5 +64,10 @@ class gpRender{
 		int FPS = 60;
 		int frameDelay = 1000/ FPS;
 		SDL_Texture* bgsheet;
+		SDL_Texture *maze_wall;
+		
+};
+
+
 		
 };
