@@ -216,27 +216,7 @@ void run_demo(gpRender gr){
 	}
 	while(gameon)
 	{
-		Ellers_Maze maze;
-		SDL_RenderClear(gr.getRender());
-		bool mazeCheck = true;
-
-		while(mazeCheck && gameon)
-		{
-			SDL_RenderClear(gr.getRender());
-			while(SDL_PollEvent(&e)) {
-				gameon = handleKeyEvents(e, playerent);	
-				switch(e.key.keysym.sym) {
-					case SDLK_m:
-						if(e.type == SDL_KEYDOWN){
-							mazeCheck = false;
-						}
-						
-						break;
-				}
-			}
-			maze.drawMaze(gr.getWall(), gr.getRender());
-			SDL_RenderPresent(gr.getRender());
-		}
+		
 	
 		SDL_RenderClear(gr.getRender());
 		bool galaxy = true;
@@ -270,56 +250,81 @@ void run_demo(gpRender gr){
 			updatePosition(playerent, osSprite, ZONE_WIDTH, ZONE_HEIGHT);
 			TimeData::update_move_last_time();
 
-		if (animate){
-			if (TimeData::getTimeSinceAnim() > 100) {
-				if (animation <= 1){
-					cycle = true;
+			if (animate){
+				if (TimeData::getTimeSinceAnim() > 100) {
+					if (animation <= 1){
+						cycle = true;
+					}
+					else if(animation == 3){
+						cycle = false;
+					}
+					
+					if (cycle){
+						animation++;
+					}
+					else{
+						animation--;
+					}
+					
+					TimeData::update_anim_last_time();
+					playerent.setF(animation);
 				}
-				else if(animation == 3){
-					cycle = false;
-				}
-				
-				if (cycle){
-					animation++;
-				}
-				else{
-					animation--;
-				}
-				
-				TimeData::update_anim_last_time();
+			}
+			else{
+				animation = 0;
 				playerent.setF(animation);
 			}
-		}
-		else{
-			animation = 0;
-			playerent.setF(animation);
+
+			//Renders all renderable objects onto the screen
+			
+
+			camera.x = playerent.getX() - SCREEN_WIDTH/2 + PLAYER_WIDTH/2;
+			camera.y = playerent.getY() - SCREEN_HEIGHT/2 + PLAYER_HEIGHT/2;
+			
+			if (camera.x < 0){
+				camera.x = 0;
+				fixed = true;
+			}
+			else if (camera.x + SCREEN_WIDTH > ZONE_WIDTH){
+				camera.x = ZONE_WIDTH - SCREEN_WIDTH;
+				fixed = true;
+			}
+			if (camera.y < 0){
+				camera.y = 0;
+
+				fixed = true;
+			}
+			else if (camera.y + SCREEN_HEIGHT > ZONE_HEIGHT){
+				camera.y = ZONE_HEIGHT - SCREEN_HEIGHT;
+				fixed = true;
+			}
+
+			gr.renderOnScreenEntity(osSprite2, bggalaxies, bgzonelayer1, bgzonelayer2, camera, fixed);
 		}
 
-		//Renders all renderable objects onto the screen
-		
+		Ellers_Maze maze;
+		SDL_RenderClear(gr.getRender());
+		bool mazeCheck = true;
 
-		camera.x = playerent.getX() - SCREEN_WIDTH/2 + PLAYER_WIDTH/2;
-		camera.y = playerent.getY() - SCREEN_HEIGHT/2 + PLAYER_HEIGHT/2;
-		
-		if (camera.x < 0){
-			camera.x = 0;
-			fixed = true;
-		}
-		else if (camera.x + SCREEN_WIDTH > ZONE_WIDTH){
-			camera.x = ZONE_WIDTH - SCREEN_WIDTH;
-			fixed = true;
-		}
-		if (camera.y < 0){
-			camera.y = 0;
-
-			fixed = true;
-		}
-		else if (camera.y + SCREEN_HEIGHT > ZONE_HEIGHT){
-			camera.y = ZONE_HEIGHT - SCREEN_HEIGHT;
-			fixed = true;
+		while(mazeCheck && gameon)
+		{
+			SDL_RenderClear(gr.getRender());
+			while(SDL_PollEvent(&e)) {
+				gameon = handleKeyEvents(e, playerent);	
+				switch(e.key.keysym.sym) {
+					case SDLK_m:
+						if(e.type == SDL_KEYDOWN){
+							mazeCheck = false;
+						}
+						
+						break;
+				}
+			}
+			maze.drawMaze(gr.getWall(), gr.getRender());
+			SDL_RenderPresent(gr.getRender());
 		}
 
-		gr.renderOnScreenEntity(osSprite2, bggalaxies, bgzonelayer1, bgzonelayer2, camera, fixed);
+		SDL_RenderClear(gr.getRender());
+	
 	}
-}
 }
