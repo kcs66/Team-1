@@ -5,6 +5,7 @@ using namespace std;
 
 Sector::Sector(){
 	__SectEnts = new vector<Sprite *>();
+	pf = new Pathfinder(__SectEnts, 10);
 }
 
 void Sector::init(gpRender *g, int winWidth, int winHeight)
@@ -24,6 +25,7 @@ void Sector::init(gpRender *g, int winWidth, int winHeight)
 			star = new Star(star_rect, star_tex, {star_rect});
 			star->setPosition({star_rect.x, star_rect.y});			
 			bodySprites.push_back(star);
+			__SectEnts->push_back(star);
 			break;
 
 		case 1: //white dwarf
@@ -33,6 +35,7 @@ void Sector::init(gpRender *g, int winWidth, int winHeight)
 			star = new Star(star_rect, star_tex, {star_rect});
 			star->setPosition({star_rect.x, star_rect.y});			
 			bodySprites.push_back(star);
+			__SectEnts->push_back(star);
 			break;
 
 		case 2:	//yellow dwarf
@@ -42,6 +45,7 @@ void Sector::init(gpRender *g, int winWidth, int winHeight)
 			star = new Star(star_rect, star_tex, {star_rect});
 			star->setPosition({star_rect.x, star_rect.y});			
 			bodySprites.push_back(star);
+			__SectEnts->push_back(star);
 			break;
 
 		case 3: //blue giant
@@ -51,6 +55,7 @@ void Sector::init(gpRender *g, int winWidth, int winHeight)
 			star = new Star(star_rect, star_tex, {star_rect});
 			star->setPosition({star_rect.x, star_rect.y});			
 			bodySprites.push_back(star);
+			__SectEnts->push_back(star);
 			break;
 	}
 
@@ -61,7 +66,7 @@ void Sector::init(gpRender *g, int winWidth, int winHeight)
 	//SDL_Texture* evalPlanet;
 	
 
-	std::cout << "star x: " << star_rect.x << " star y: " << star_rect.y << endl;
+	//std::cout << "star x: " << star_rect.x << " star y: " << star_rect.y << endl;
 	
 
 	while(dist < winWidth)
@@ -102,12 +107,13 @@ void Sector::init(gpRender *g, int winWidth, int winHeight)
 		bodySprites.push_back(__planets.back());
 		
 
-		lastBody = dist + 200;
+		lastBody = dist + 250;
 
 	}
 
 
 }
+
 
 vector<Sprite *> Sector::getBodySprites()
 {
@@ -133,7 +139,14 @@ vector<Planet *> Sector::getPlanets()
 {
 	return __planets;
 }
-
+void Sector::setCurEnemy(int num)
+{
+    curEnemy=num;
+}
+int Sector::getCurEnemy()
+{
+    return curEnemy;
+}
 void Sector::addPlanet(Planet* newPlanet)
 {
 	__planets.push_back(newPlanet);
@@ -307,12 +320,52 @@ vector<pair<int,int>> Sector::getEnemySpawn(int spawnloc){
 
 
 vector<pair<int,int>> Sector::getAllySpawn(){
-	std::cout << "1" << std::endl;
+	//std::cout << "1" << std::endl;
 	vector<int> sspos = ss->getPosition();
-	std::cout << "2" <<  std::endl;
+	//std::cout << "2" <<  std::endl;
 	std::cout << sspos[0] <<  std::endl;
 	std::cout << sspos[1] <<  std::endl;
 
 	//                            left                               top                                     right										bottom
 	return {pair<int,int>(sspos[0] - 100, sspos[1]), pair<int,int>(sspos[0], sspos[1] - 100),  pair<int,int>(sspos[0] + 100, sspos[1]), pair<int,int>(sspos[0],  sspos[1] + 100) };
+}
+
+Pathfinder* Sector::getPathfinder(){
+	return pf;
+}
+
+void Sector::clearDeadEnts(){
+	for(int i = 0; i < __SectEnts->size();){
+		//std::cout << "Clearing Dead ent" << std::endl;
+		if(__SectEnts->at(i)->getIsAI()){
+			if(((dynamic_cast<AIShip*>(__SectEnts->at(i)))->getCurrHp()) <= 0){
+                
+                __SectEnts->erase(__SectEnts->begin() + i);
+       		}
+        	else{
+           		i++;
+    		}
+		}
+		else{
+			i++;
+		}
+        
+	}
+
+	for(int i = 0; i < __ships.size();){
+
+		if(__ships.at(i)->getIsAI()){
+			if((dynamic_cast<AIShip*>(__ships.at(i)))->getCurrHp() <= 0){
+                
+                __ships.erase(__ships.begin() + i);
+       		}
+        	else{
+           		i++;
+    		}
+		}
+		else{
+           		i++;
+    	}
+        
+	}
 }

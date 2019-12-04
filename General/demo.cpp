@@ -21,7 +21,7 @@ std::vector<std::pair<int, int>> randNum(){
 		[](int a, int b){return std::make_pair(a, b);});
 
 	for(int k = 0; k<10; k++){
-	 	std::cout << coords[k].first << ", " << coords[k].second << endl;
+	 	//std::cout << coords[k].first << ", " << coords[k].second << endl;
 	}
 
 	 return coords;
@@ -450,7 +450,6 @@ void run_demo(gpRender gr){
 	bool blink = false;
 		
 	
-	
 	//Credits* mapSectors[] = {sector1Tex, sector2Tex, sector3Tex, sector4Tex, sector5Tex, sector6Tex, sector7Tex, sector8Tex, sector9Tex};
 
 	/*
@@ -517,7 +516,7 @@ void run_demo(gpRender gr){
 	}
 	
 	/*Need to address*/
-	ai.setCurrentSector(&sector);
+	ai.setCurrentSector(sectors[curSector - 1], false);
 
 	/*Need to fix*/
 	
@@ -537,7 +536,15 @@ void run_demo(gpRender gr){
 	ai.setShips(&aiControlled);
 	ai.setSprites(&osSprite);
 	ai.setTextures(&allTextures);
-
+	ai.setTimeAttack(SDL_GetTicks());
+	ai.setTimeSpawn(SDL_GetTicks());
+	if(ai.getAttackStatus()==true)
+	    ai.attackFlip();
+	//cout<<ai.getAttackStatus()<<endl;
+	int targetSector=galaxy.findTarget();
+	//cout<<"target: "<<targetSector<<endl;
+	ai.setTargetSector(sectors.at(targetSector));
+	ai.setAttackSector(sectors.at(galaxy.findNeighbor(targetSector)));
 	Audio::play_music();
 
 	bool titleCard = true;
@@ -641,8 +648,55 @@ void run_demo(gpRender gr){
 		{	
 			gr.setFrameStart(SDL_GetTicks());
 			TimeData::update_timestep();
-	
-			
+			//add a ship to an adjacent every 15 seconds
+			if(SDL_GetTicks()-ai.getTimeSpawn()>DELAY_ATTACK_SPAWN)
+			{
+			    //cout<<"add a ship?"<<endl;
+			    ai.getAttackSector()->setCurEnemy(ai.getAttackSector()->getCurEnemy()+1);
+			    ai.setTimeSpawn(SDL_GetTicks());
+			}
+			//begin attack once reach limit
+			if(!ai.getAttackStatus()&&ai.getAttackSector()->getCurEnemy()==SHIP_ENEMY_SECTOR_LIMIT)
+			{
+			    //cout<<"begin attack?"<<endl;
+			    ai.setTimeAttack(SDL_GetTicks());
+			    ai.attackFlip();
+			    ai.getAttackSector()->setCurEnemy(SHIP_ENEMY_SECTOR_INIT_LIMIT);
+			    ai.getTargetSector()->setCurEnemy(SHIP_ENEMY_SECTOR_LIMIT-SHIP_ENEMY_SECTOR_INIT_LIMIT);
+			    //note: if enemy attacks sector player currently is in it wont render them
+			}
+			//trigger battle/takeover if player doesn't respond in time (2 minutes)
+			if(ai.getAttackStatus()&&SDL_GetTicks()-ai.getTimeAttack()>DELAY_ATTACK_ATTACK)
+			{
+			    //cout<<"attack concludes?"<<endl;
+			    //cout<<"time: "<<ai.getTimeAttack()<<endl;
+			    //cout<<SDL_GetTicks()<<endl;
+			    //cout<<SDL_GetTicks()-ai.getTimeAttack()<<endl;
+			    //ratio of ally:enemy
+			    double chance=10;
+			    if(ai.getTargetSector()->getCurEnemy()!=0)
+				chance=ai.getTargetSector()->getNumAlly()/ai.getTargetSector()->getCurEnemy();
+			    //cout<<"chance: "<<chance<<endl;
+			    //successful takeover
+			    if(rand()%100>chance*100)
+			    {
+				//note: need to do something with changing ownership of sector
+				ai.getTargetSector()->setCurEnemy(rand()%SHIP_ENEMY_SECTOR_LIMIT);
+				galaxy.enemyWinZone(targetSector); //maybe this does it?
+				if(galaxy.getPlayerCount()>0)
+				{
+				    targetSector=galaxy.findTarget();
+        			    ai.setTargetSector(sectors.at(targetSector));
+        			    ai.setAttackSector(sectors.at(galaxy.findNeighbor(targetSector)));
+				}
+			    }
+			    //fail
+			    else
+			    {
+				ai.getTargetSector()->setCurEnemy(0);
+			    }
+			    ai.attackFlip();
+			}
 			if(galaxy.getInControl(curSector - 1))
 			{
 				// Checking for if the Space Station is in range of the player ship.
@@ -657,9 +711,9 @@ void run_demo(gpRender gr){
 				} else {
 					//we need to check if our ship has left the range of the space station
 					if(!check_proximity(playerent, ss_ent, 3)){
-						if(in_space_station_menu) {
-							osSprite.erase(osSprite.begin() + ss_UI.get_spriteIndex());
-						}
+						//if(in_space_station_menu) {
+							//osSprite.erase(osSprite.begin() + ss_UI.get_spriteIndex());
+						//}
 						osSprite.erase(osSprite.begin() + e_UI.get_spriteIndex());
 
 						is_space_station_in_range = false;
@@ -879,7 +933,7 @@ void run_demo(gpRender gr){
 								//Upgrade player ship if credits over or equal to 50
 								if(playerent.getType()==0&&credits >= 50)
 								{
-									playerent.setTexture(allTextures.at(TEX_CRUIS_HERO));
+									//playerent.setTexture(allTextures.at(TEX_CRUIS_HERO));
 									playerent.upgradeType();
 									playerent.setMaxHp(100);
 									credits -= 50;
@@ -889,7 +943,7 @@ void run_demo(gpRender gr){
 								}
 								else if(playerent.getType()==1&&credits>=100)//upgrade if credits over 100 and have good ship
 								{
-									playerent.setTexture(allTextures.at(TEX_CAPT_HERO));
+									//playerent.setTexture(allTextures.at(TEX_CAPT_HERO));
 									playerent.upgradeType();
 									playerent.setMaxHp(200);
 									credits-=100;
@@ -931,7 +985,7 @@ void run_demo(gpRender gr){
 
 
 			if(SDL_GetTicks() - creditInterval > 2000){
-				credits += 5;
+				credits += 5*galaxy.getPlayerCount();
 				creditInterval = SDL_GetTicks();
 				credit_tex = gr.loadText("Credits: " + to_string(credits));
 				credit.updateCredits(credit_tex);
@@ -1254,7 +1308,7 @@ void run_demo(gpRender gr){
 					if(curSector != 7 && curSector != 8 && curSector != 9)
 					{
 						side = 3;
-												if(galaxy.getInControl(curSector-1)){
+						if(galaxy.getInControl(curSector-1)){
 							if(curSector == 4){
 								sector4ent.updateCredits(playerMapTex);
 							}
@@ -1307,36 +1361,16 @@ void run_demo(gpRender gr){
 				{
 					solar = true;
 				}
+
+				ai.setCurrentSector(sectors[curSector - 1], true);
+
 				
 			}
 			
 			
 			TimeData::update_move_last_time();
 
-			/*if (animate){
-				if (TimeData::getTimeSinceAnim() > 100) {
-					if (animation <= 1){
-						cycle = true;
-					}
-					else if(animation == 3){
-						cycle = false;
-					}
-					
-					if (cycle){
-						animation++;
-					}
-					else{
-						animation--;
-					}
-					
-					TimeData::update_anim_last_time();
-					playerent.setF(animation);
-				}
-			}
-			else{
-				animation = 0;
-				playerent.setF(animation);
-			}*/
+			
 
 			//Renders all renderable objects onto the screen
 
@@ -1377,11 +1411,19 @@ void run_demo(gpRender gr){
 							numEnemy--;
 							if(numEnemy <= 0)
 							{
+								//also reset attacking (but not currently massed)
+								if(galaxy.getEnemyCount()>0)
+								{
+								    targetSector=galaxy.findTarget();
+        							    ai.setTargetSector(sectors.at(targetSector));
+        							    ai.setAttackSector(sectors.at(galaxy.findNeighbor(targetSector)));
+								}
+								ai.setTimeAttack(SDL_GetTicks());
+        							ai.setTimeSpawn(SDL_GetTicks());
 								galaxy.playerWinZone(curSector - 1);
 								ss_ent.setTexture(tex_ss);
 							}
-							
-						}	
+						}
 					}
 					toErase.push_back(i);
 				}
